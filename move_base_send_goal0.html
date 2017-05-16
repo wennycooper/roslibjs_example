@@ -11,7 +11,7 @@
   // -----------------
 
   var ros = new ROSLIB.Ros({
-    url : 'ws://192.168.25.64:9090'
+    url : 'ws://192.168.25.92:9090'
   });
 
   ros.on('connection', function() {
@@ -37,7 +37,7 @@
   var positionVec3 = new ROSLIB.Vector3(null);
   var orientation = new ROSLIB.Quaternion({x:0, y:0, z:0, w:1.0});
   
-  positionVec3.x = 1.0;
+  positionVec3.x = 3.0;
   positionVec3.y = 0.0;
 
   var pose = new ROSLIB.Pose({
@@ -45,14 +45,7 @@
     orientation : orientation
   });
 
-  /**
-   * Send a goal to the navigation stack with the given pose.
-   *
-   * @param pose - the goal pose
-   */
-  function sendGoal(pose) {
-    // create a goal
-    var goal = new ROSLIB.Goal({
+  var goal = new ROSLIB.Goal({
       actionClient : actionClient,
       goalMessage : {
         target_pose : {
@@ -63,11 +56,37 @@
         }
       }
     });
+
+
+  /**
+   * Send a goal to the navigation stack with the given pose.
+   *
+   */
+  function sendGoal() {
     goal.send();
   }
 
 
- sendGoal(pose);
+  function cancelGoal() {
+    // cancel the current goal
+    goal.cancel();
+  }
+
+
+  // Monitoring /move_base/result
+  var move_baseListener = new ROSLIB.Topic({
+    ros : ros,
+    name : '/move_base/result',
+    messageType : 'move_base_msgs/MoveBaseActionResult'
+  });
+        
+  move_baseListener.subscribe(function(actionResult) {
+    console.log('Received message on ' + move_baseListener.name + 'status: ' + actionResult.status.status);
+    alert("in callback of /move_base/result");
+    // actionResult.status.status == 2 (goal cancelled)
+    // actionResult.status.status == 3 (goal reached)
+//    move_baseListener.unsubscribe();
+  });
 
 
 </script>
@@ -76,5 +95,7 @@
 <body>
   <h1>Simple roslib Example</h1>
   <p>Check your Web Console for output.</p>
+  <button type="button"  onclick="sendGoal()">sendGoal</button>
+  <button type="button"  onclick="cancelGoal()">cancelGoal</button>
 </body>
 </html>
